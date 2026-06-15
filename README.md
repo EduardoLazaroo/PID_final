@@ -27,27 +27,15 @@ PID_final/
 ├── experimento4_features.py     # Experimento 4: Extração de Características
 ├── experimento5_relief.py       # Experimento 5: Normalização e Seleção
 ├── experimento6_classificacao.py# Experimento 6: Visualização e Classificação
+├── discussao_final.py           # Seção 6.7: Discussão Final
 ├── requirements.txt             # Dependências Python
 ├── README.md                    # Este arquivo
-├── dataset/                     # Dataset LC25000 (baixar separadamente)
-│   └── LC25000/
-│       ├── colon_aca/           # Colon adenocarcinoma
-│       ├── colon_n/             # Colon benign tissue
-│       ├── lung_aca/            # Lung adenocarcinoma
-│       ├── lung_n/              # Lung benign tissue
-│       └── lung_scc/            # Lung squamous cell carcinoma
-└── results/                     # Resultados gerados automaticamente
-    ├── figures/                 # Figuras geradas
-    │   ├── experimento1/
-    │   ├── experimento2/
-    │   ├── experimento3/
-    │   ├── experimento4/
-    │   ├── experimento5/
-    │   └── experimento6/
-    ├── masks/                   # Máscaras de segmentação
-    ├── features/                # Features extraídas
-    ├── classification/          # Resultados de classificação
-    └── resumo.txt               # Resumo dos resultados
+└── dataset/LC25000/             # Dataset (250 imagens por classe)
+    ├── colon_aca/               # Colon adenocarcinoma
+    ├── colon_n/                 # Colon benign tissue
+    ├── lung_aca/                # Lung adenocarcinoma
+    ├── lung_n/                  # Lung benign tissue
+    └── lung_scc/                # Lung squamous cell carcinoma
 ```
 
 ## Instalação
@@ -57,42 +45,22 @@ PID_final/
 - Python 3.8 ou superior
 - pip (gerenciador de pacotes Python)
 
-### 2. Clonar/Copiar o projeto
-
-```bash
-cd PID_final
-```
-
-### 3. Criar ambiente virtual (recomendado)
+### 2. Criar ambiente virtual (recomendado)
 
 ```bash
 python -m venv venv
-# Windows:
 venv\Scripts\activate
-# Linux/Mac:
-source venv/bin/activate
 ```
 
-### 4. Instalar dependências
+### 3. Instalar dependências
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 5. Baixar o dataset
+### 4. Dataset
 
-Baixar o dataset **LC25000** do Kaggle:
-https://www.kaggle.com/datasets/andrewmvd/lung-and-colon-cancer-histopathological-images/data
-
-Extrair para a estrutura:
-```
-dataset/LC25000/
-    colon_aca/
-    colon_n/
-    lung_aca/
-    lung_n/
-    lung_scc/
-```
+O dataset LC25000 deve estar em `dataset/LC25000/` com 250 imagens por classe (5% do total de 5000, conforme exigido pela atividade).
 
 ## Uso
 
@@ -102,30 +70,19 @@ dataset/LC25000/
 python main.py
 ```
 
-### Executar experimentos específicos
+### Escolher Classes
 
 ```bash
-# Apenas experimento 1
-python main.py --exp 1
-
-# Experimentos 1 a 3
-python main.py --exp 1 2 3
-
-# Experimentos 4 a 6 (requer resultados anteriores)
-python main.py --exp 4 5 6
+python main.py --class1 colon_aca --class2 colon_n
+python main.py --class1 lung_aca --class2 lung_n
+python main.py --class1 lung_aca --class2 lung_scc
 ```
 
-### Opções adicionais
+### Executar Experimentos Específicos
 
 ```bash
-# Limitar número de imagens por classe
-python main.py --max-images 100
-
-# Selecionar classes diferentes
-python main.py --class1 lung_aca --class2 lung_n
-
-# Combinar opções
-python main.py --exp 1 2 3 --max-images 50 --class1 colon_aca --class2 colon_n
+python main.py --exp 1 2 3
+python main.py --exp 4 5 6
 ```
 
 ## Configuração
@@ -135,6 +92,7 @@ Edite `config.py` para personalizar:
 | Parâmetro | Descrição | Padrão |
 |-----------|-----------|--------|
 | `CLASS_1`, `CLASS_2` | Classes do dataset | `colon_aca`, `colon_n` |
+| `MAX_IMAGES_PER_CLASS` | Imagens por classe | `250` (5% de 5000) |
 | `HSV_CHANNEL_SELECTED` | Canal HSV para processamento | `S` (Saturação) |
 | `SEGMENTATION_METHOD` | Método de segmentação | `multi_otsu` |
 | `STRUCTURING_ELEMENT_TYPE` | Elemento estruturante | `disk` |
@@ -150,43 +108,37 @@ Edite `config.py` para personalizar:
 - Converte imagens RGB → HSV
 - Analisa canais H, S, V separadamente
 - Seleciona canal mais discriminativo (S por padrão)
-- Gera: histogramas, visualizações dos canais
 
 ### Experimento 2 — Segmentação
 - Aplica Multi-Otsu (3 classes) ou Máxima Entropia
 - Gera máscara binária (tecido vs. fundo)
 - Avalia: fração de área, número de regiões, circularidade
-- Analisa impacto de textura e heterogeneidade
 
 ### Experimento 3 — Morfologia Matemática
 - Abertura (remove ruído pequeno)
 - Fechamento (preenche buracos)
-- Elemento estruturante: disco (preserva formas arredondadas)
-- Quantifica melhoria: solidez, regiões removidas, buracos preenchidos
+- Elemento estruturante: disco
 
 ### Experimento 4 — Extração de Características
-- **Haralick (GLCM)**: 6 descritores (contrast, dissimilarity, homogeneity, energy, correlation, ASM)
-  - Distâncias: [1, 3, 5] pixels
-  - Ângulos: [0°, 45°, 90°, 135°]
-- **Fractal**: Box-counting multiescala
-  - Escalas: [2, 4, 8, 16, 32, 64]
-  - Regressão linear log-log para dimensão fractal
-- **Cor**: Média e desvio de R, G, B nas regiões segmentadas
+- **Haralick (GLCM)**: 6 descritores × 3 distâncias × 4 ângulos
+- **Fractal**: Box-counting multiescala (6 escalas)
+- **Cor**: Média e desvio de R, G, B
 - **Geométrica**: Área, solidez, excentricidade
 
 ### Experimento 5 — Normalização e Seleção
 - Normalização: Z-score ou Min-Max
 - RELIEF-F: ranqueamento considerando k vizinhos
 - Seleciona top-N features mais relevantes
-- Gera: distribuições, scores, correlações
 
 ### Experimento 6 — Visualização e Classificação
 - Projeções PCA (2D/3D) e t-SNE
 - Classificadores: SVM, Random Forest, KNN, LDA
 - Validação cruzada estratificada
 - Curvas ROC, matriz de confusão
-- Fronteira de decisão visual
-- Estatísticas por classe (média, desvio, IC)
+
+### Seção 6.7 — Discussão Final
+- Integração crítica de todos os experimentos
+- Análise de limitações e complementaridade dos descritores
 
 ## Resultados
 

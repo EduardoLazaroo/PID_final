@@ -1,0 +1,13 @@
+# Dependências
+node_modules/
+
+# Build
+dist/
+
+# Dataset
+dataset/
+
+# Variáveis de ambiente
+.env
+
+__pycache__/

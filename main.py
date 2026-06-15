@@ -21,12 +21,11 @@ Uso:
   python main.py                    # Executa pipeline completo
   python main.py --exp 1            # Executa apenas experimento 1
   python main.py --exp 1 2 3        # Executa experimentos 1 a 3
-  python main.py --max-images 100   # Limita a 100 imagens por classe
-  python main.py --skip-figures     # Pula geração de figuras (mais rápido)
+  python main.py --class1 colon_aca --class2 colon_n  # Escolher classes
 """
 
-import os
 import sys
+import os
 import time
 import argparse
 import numpy as np
@@ -34,11 +33,8 @@ import matplotlib
 matplotlib.use('Agg')  # Backend sem interface gráfica
 import matplotlib.pyplot as plt
 
-# Importar configuração e utilitários
 import config
 from utils import load_dataset, save_figure
-
-# Importar experimentos
 from experimento1_hsv import run_experiment_1
 from experimento2_segmentacao import run_experiment_2
 from experimento3_morfologia import run_experiment_3
@@ -58,16 +54,12 @@ def parse_arguments():
         help='Experimentos a executar (1-6). Default: todos'
     )
     parser.add_argument(
-        '--max-images', type=int, default=None,
-        help='Número máximo de imagens por classe'
-    )
-    parser.add_argument(
         '--class1', type=str, default=None,
-        help='Primeira classe (ex: colon_aca)'
+        help='Primeira classe (ex: colon_aca). Default: colon_aca'
     )
     parser.add_argument(
         '--class2', type=str, default=None,
-        help='Segunda classe (ex: colon_n)'
+        help='Segunda classe (ex: colon_n). Default: colon_n'
     )
     return parser.parse_args()
 
@@ -138,7 +130,6 @@ def main():
     if args.class2:
         config.CLASS_2 = args.class2
 
-    max_images = args.max_images
     experiments = args.exp  # None = todos
 
     # Criar diretórios
@@ -158,7 +149,7 @@ def main():
     # CARREGAR DATASET
     # =========================================================================
     print("[1/8] Carregando dataset...")
-    images_rgb, labels_dict, paths_dict = load_dataset(max_images=max_images)
+    images_rgb, labels_dict, paths_dict = load_dataset()
 
     # Verificar se há imagens
     for cls in images_rgb:

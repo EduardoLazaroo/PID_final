@@ -1,12 +1,13 @@
 """
 =============================================================================
-utils.py - Funções utilitárias para o Pipeline de Análise de Imagens
+utils.py - Funcoes utilitarias para o Pipeline de Analise de Imagens
 =============================================================================
-Contém funções auxiliares para carregamento de dados, visualização,
-cálculos estatísticos e operações comuns aos experimentos.
+Contem funcoes auxiliares para carregamento de dados, visualizacao,
+calculos estatisticos e operacoes comuns aos experimentos.
 """
 
 import os
+import math
 import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
@@ -31,16 +32,14 @@ import config
 # CARREGAMENTO DE DADOS
 # =============================================================================
 
-def load_dataset(max_images=None):
+def load_dataset():
     """
     Carrega imagens das duas classes selecionadas no config.
-
-    Parâmetros:
-        max_images: número máximo de imagens por classe (None = todas)
+    Usa config.MAX_IMAGES_PER_CLASS como limite por classe (padrao: 250).
 
     Retorna:
         images: dict {classe: [lista de arrays numpy]}
-        labels: dict {classe: label numérico}
+        labels: dict {classe: label numerico}
         paths: dict {classe: [lista de caminhos]}
     """
     classes = [config.CLASS_1, config.CLASS_2]
@@ -55,7 +54,7 @@ def load_dataset(max_images=None):
         cls_dir = os.path.join(config.DATASET_ROOT, cls)
         if not os.path.isdir(cls_dir):
             raise FileNotFoundError(
-                f"Diretório não encontrado: {cls_dir}\n"
+                f"Diretorio nao encontrado: {cls_dir}\n"
                 f"Verifique config.DATASET_ROOT e a estrutura do dataset."
             )
 
@@ -64,14 +63,13 @@ def load_dataset(max_images=None):
             if f.lower().endswith(('.png', '.jpg', '.jpeg', '.tif', '.tiff'))
         ])
 
-        # Aplicar fração mínima e máximo
+        # Seed para reprodutibilidade
+        rng = np.random.RandomState(config.RANDOM_STATE)
+        rng.shuffle(all_files)
+
         n_total = len(all_files)
-        n_min = max(1, int(n_total * config.MIN_FRACTION))
-        if max_images is not None:
-            n_select = min(max_images, n_total)
-        else:
-            n_select = n_total
-        n_select = max(n_select, n_min)
+        # Limite por classe definido no config (padrao: 250 = 5% de 5000)
+        n_select = min(config.MAX_IMAGES_PER_CLASS, n_total)
 
         selected = all_files[:n_select]
         labels[cls] = idx
@@ -82,19 +80,22 @@ def load_dataset(max_images=None):
 
         for fname in tqdm(selected, desc=f"  Carregando {name}"):
             fpath = os.path.join(cls_dir, fname)
-            img = np.array(Image.open(fpath).convert("RGB"))
-            images[cls].append(img)
-            paths[cls].append(fpath)
+            try:
+                img = np.array(Image.open(fpath).convert("RGB"))
+                images[cls].append(img)
+                paths[cls].append(fpath)
+            except Exception as e:
+                print(f"    [AVISO] Erro ao carregar {fname}: {e} - ignorando")
 
     return images, labels, paths
 
 
 def prepare_feature_matrix(images_dict, labels_dict):
     """
-    Converte dicionário de imagens em matriz de features e vetor de labels.
+    Converte dicionario de imagens em matriz de features e vetor de labels.
 
     Retorna:
-        X: array (n_samples, n_features) - inicialmente vazio, preenchido pelos experimentos
+        X: array (n_samples, n_features) - inicialmente vazio
         y: array (n_samples,) - labels
         image_list: lista de imagens na ordem correspondente
     """
@@ -108,11 +109,11 @@ def prepare_feature_matrix(images_dict, labels_dict):
 
 
 # =============================================================================
-# VISUALIZAÇÃO
+# VISUALIZACAO
 # =============================================================================
 
 def save_figure(fig, filename, subdir=None, dpi=None):
-    """Salva figura matplotlib no diretório de resultados."""
+    """Salva figura matplotlib no diretorio de resultados."""
     if dpi is None:
         dpi = config.FIGURE_DPI
     if subdir:
@@ -125,28 +126,8 @@ def save_figure(fig, filename, subdir=None, dpi=None):
     plt.close(fig)
     print(f"  [FIGURA SALA] {filepath}")
 
-
-def plot_image_grid(images, titles, ncols=4, figsize=(16, 4), cmap=None):
-    """Plota grade de imagens com títulos."""
-    nrows = (len(images) + ncols - 1) // ncols
-    fig, axes = plt.subplots(nrows, ncols, figsize=(figsize[0], figsize[1] * nrows))
-    if nrows == 1:
-        axes = axes.reshape(1, -1)
-    for i, (img, title) in enumerate(zip(images, titles)):
-        r, c = divmod(i, ncols)
-        axes[r, c].imshow(img, cmap=cmap)
-        axes[r, c].set_title(title, fontsize=10)
-        axes[r, c].axis('off')
-    # Desativar eixos extras
-    for i in range(len(images), nrows * ncols):
-        r, c = divmod(i, ncols)
-        axes[r, c].axis('off')
-    fig.tight_layout()
-    return fig
-
-
 def plot_channel_analysis(hsv_channels, channel_names, selected_idx):
-    """Plota análise dos canais HSV com destaque para o selecionado."""
+    """Plota analise dos canais HSV com destaque para o selecionado."""
     fig, axes = plt.subplots(1, 3, figsize=(15, 4))
     for i, (ch, name) in enumerate(zip(hsv_channels, channel_names)):
         axes[i].imshow(ch, cmap='gray')
@@ -161,46 +142,43 @@ def plot_channel_analysis(hsv_channels, channel_names, selected_idx):
     fig.tight_layout()
     return fig
 
-
-def plot_segmentation_comparison(original, segmented, mask, title="Segmentação"):
-    """Plota comparação: original, segmentação e máscara."""
+def plot_segmentation_comparison(original, segmented, mask, title="Segmentacao"):
+    """Plota comparacao: original, segmentacao e mascara."""
     fig, axes = plt.subplots(1, 3, figsize=(15, 5))
     axes[0].imshow(original)
     axes[0].set_title("Original")
     axes[0].axis('off')
     axes[1].imshow(segmented, cmap=config.SEGMENTATION_CMAP)
-    axes[1].set_title("Segmentação")
+    axes[1].set_title("Segmentacao")
     axes[1].axis('off')
     axes[2].imshow(mask, cmap='gray')
-    axes[2].set_title("Máscara Binária")
+    axes[2].set_title("Mascara Binaria")
     axes[2].axis('off')
     fig.suptitle(title, fontsize=14, fontweight='bold')
     fig.tight_layout()
     return fig
 
-
 def plot_morphology_comparison(before, after, mask_before, mask_after):
-    """Plota comparação antes e depois da morfologia matemática."""
+    """Plota comparacao antes e depois da morfologia matematica."""
     fig, axes = plt.subplots(2, 2, figsize=(12, 10))
     axes[0, 0].imshow(before, cmap='gray')
-    axes[0, 0].set_title("Antes - Segmentação")
+    axes[0, 0].set_title("Antes - Segmentacao")
     axes[0, 0].axis('off')
     axes[0, 1].imshow(after, cmap='gray')
     axes[0, 1].set_title("Depois - Morfologia")
     axes[0, 1].axis('off')
     axes[1, 0].imshow(mask_before, cmap='gray')
-    axes[1, 0].set_title("Antes - Máscara")
+    axes[1, 0].set_title("Antes - Mascara")
     axes[1, 0].axis('off')
     axes[1, 1].imshow(mask_after, cmap='gray')
-    axes[1, 1].set_title("Depois - Máscara Final")
+    axes[1, 1].set_title("Depois - Mascara Final")
     axes[1, 1].axis('off')
-    fig.suptitle("Refinamento com Morfologia Matemática", fontsize=14, fontweight='bold')
+    fig.suptitle("Refinamento com Morfologia Matematica", fontsize=14, fontweight='bold')
     fig.tight_layout()
     return fig
 
-
 def plot_feature_distribution(features, y, feature_names, class_names):
-    """Plota distribuição de features por classe."""
+    """Plota distribuicao de features por classe."""
     n_features = features.shape[1]
     ncols = min(3, n_features)
     nrows = (n_features + ncols - 1) // ncols
@@ -222,27 +200,19 @@ def plot_feature_distribution(features, y, feature_names, class_names):
         axes[r, c].set_title(feature_names[i], fontsize=10)
         axes[r, c].legend(fontsize=8)
         axes[r, c].set_xlabel("Valor")
-        axes[r, c].set_ylabel("Frequência")
+        axes[r, c].set_ylabel("Frequencia")
 
     for i in range(n_features, nrows * ncols):
         r, c = divmod(i, ncols)
         axes[r, c].axis('off')
 
-    fig.suptitle("Distribuição de Features por Classe", fontsize=14, fontweight='bold')
+    fig.suptitle("Distribuicao de Features por Classe", fontsize=14, fontweight='bold')
     fig.tight_layout()
     return fig
 
-
 def plot_feature_space(features, y, class_names, method="pca", n_components=2):
     """
-    Visualiza espaço de características via PCA ou t-SNE.
-
-    Parâmetros:
-        features: matriz (n_samples, n_features)
-        y: labels
-        class_names: nomes das classes
-        method: "pca" ou "tsne"
-        n_components: 2 ou 3
+    Visualiza espaco de caracteristicas via PCA ou t-SNE.
     """
     if method == "pca":
         reducer = PCA(n_components=n_components)
@@ -251,7 +221,7 @@ def plot_feature_space(features, y, class_names, method="pca", n_components=2):
         reducer = TSNE(n_components=n_components, random_state=config.RANDOM_STATE)
         label_prefix = "t-SNE"
     else:
-        raise ValueError(f"Método desconhecido: {method}")
+        raise ValueError(f"Metodo desconhecido: {method}")
 
     reduced = reducer.fit_transform(features)
 
@@ -267,7 +237,7 @@ def plot_feature_space(features, y, class_names, method="pca", n_components=2):
         ax.set_ylabel(f"{label_prefix} 2", fontsize=12)
         ax.legend(fontsize=11)
         ax.set_title(
-            f"Projeção {method.upper()} do Espaço de Características",
+            f"Projecao {method.upper()} do Espaco de Caracteristicas",
             fontsize=14, fontweight='bold'
         )
     elif n_components == 3:
@@ -284,16 +254,15 @@ def plot_feature_space(features, y, class_names, method="pca", n_components=2):
         ax.set_zlabel(f"{label_prefix} 3", fontsize=10)
         ax.legend(fontsize=11)
         ax.set_title(
-            f"Projeção {method.upper()} 3D do Espaço de Características",
+            f"Projecao {method.upper()} 3D do Espaco de Caracteristicas",
             fontsize=14, fontweight='bold'
         )
 
     fig.tight_layout()
     return fig
 
-
 def plot_confusion_matrix(cm, class_names):
-    """Plota matriz de confusão."""
+    """Plota matriz de confusao."""
     fig, ax = plt.subplots(figsize=(8, 6))
     im = ax.imshow(cm, interpolation='nearest', cmap='Blues')
     ax.figure.colorbar(im, ax=ax)
@@ -304,11 +273,10 @@ def plot_confusion_matrix(cm, class_names):
         yticklabels=class_names,
         ylabel='Classe Real',
         xlabel='Classe Predita',
-        title='Matriz de Confusão'
+        title='Matriz de Confusao'
     )
     plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
 
-    # Anotações
     thresh = cm.max() / 2.
     for i in range(cm.shape[0]):
         for j in range(cm.shape[1]):
@@ -317,7 +285,6 @@ def plot_confusion_matrix(cm, class_names):
                     color="white" if cm[i, j] > thresh else "black")
     fig.tight_layout()
     return fig
-
 
 def plot_relief_scores(feature_names, scores, n_selected):
     """Plota ranqueamento RELIEF das features."""
@@ -339,44 +306,20 @@ def plot_relief_scores(feature_names, scores, n_selected):
     fig.tight_layout()
     return fig
 
-
-def plot_fractal_signature(scales, measures, log_log_fit=None):
-    """Plota assinatura fractal (box-counting)."""
-    fig, ax = plt.subplots(figsize=(8, 6))
-    ax.loglog(scales, measures, 'bo-', label='Box-counting', markersize=8)
-    if log_log_fit is not None:
-        ax.loglog(scales, log_log_fit, 'r--', label='Regressão Linear', linewidth=2)
-    ax.set_xlabel("Escala (ε)", fontsize=12)
-    ax.set_ylabel("Medida N(ε)", fontsize=12)
-    ax.set_title("Assinatura Fractal Multiescala (Box-Counting)", fontsize=14, fontweight='bold')
-    ax.legend(fontsize=11)
-    ax.grid(True, alpha=0.3)
-    fig.tight_layout()
-    return fig
-
-
 # =============================================================================
-# NORMALIZAÇÃO
+# NORMALIZACAO
 # =============================================================================
 
 def normalize_features(X_train, X_test=None, method="zscore"):
     """
     Normaliza features usando z-score ou min-max.
-
-    Parâmetros:
-        X_train: features de treino
-        X_test: features de teste (opcional)
-        method: "zscore" ou "minmax"
-
-    Retorna:
-        X_train_norm, X_test_norm (se fornecido), scaler
     """
     if method == "zscore":
         scaler = StandardScaler()
     elif method == "minmax":
         scaler = MinMaxScaler()
     else:
-        raise ValueError(f"Método de normalização desconhecido: {method}")
+        raise ValueError(f"Metodo de normalizacao desconhecido: {method}")
 
     X_train_norm = scaler.fit_transform(X_train)
     if X_test is not None:
@@ -384,13 +327,12 @@ def normalize_features(X_train, X_test=None, method="zscore"):
         return X_train_norm, X_test_norm, scaler
     return X_train_norm, scaler
 
-
 # =============================================================================
-# CLASSIFICAÇÃO
+# CLASSIFICACAO
 # =============================================================================
 
 def get_classifier(name=None):
-    """Retorna classificador conforme configuração."""
+    """Retorna classificador conforme configuracao."""
     if name is None:
         name = config.CLASSIFIER
 
@@ -414,15 +356,9 @@ def get_classifier(name=None):
     else:
         raise ValueError(f"Classificador desconhecido: {name}")
 
-
 def evaluate_classifier(X, y, classifier=None, cv=None):
     """
-    Avalia classificador com validação cruzada.
-
-    Retorna:
-        scores: array de acurácias por fold
-        mean_score: acurácia média
-        std_score: desvio padrão
+    Avalia classificador com validacao cruzada.
     """
     if classifier is None:
         classifier = get_classifier()
@@ -436,17 +372,9 @@ def evaluate_classifier(X, y, classifier=None, cv=None):
     scores = cross_val_score(classifier, X, y, cv=cv, scoring='accuracy')
     return scores, scores.mean(), scores.std()
 
-
 def train_and_evaluate(X_train, X_test, y_train, y_test, classifier=None, class_names=None):
     """
     Treina classificador e avalia no conjunto de teste.
-
-    Retorna:
-        classifier: modelo treinado
-        y_pred: predições
-        accuracy: acurácia
-        report: relatório de classificação
-        cm: matriz de confusão
     """
     if classifier is None:
         classifier = get_classifier()
@@ -459,17 +387,13 @@ def train_and_evaluate(X_train, X_test, y_train, y_test, classifier=None, class_
 
     return classifier, y_pred, accuracy, report, cm
 
-
 # =============================================================================
-# ESTATÍSTICAS
+# ESTATISTICAS
 # =============================================================================
 
 def compute_class_statistics(features, y, feature_names, class_names, confidence=0.95):
     """
-    Calcula média, desvio padrão e intervalo de confiança por classe.
-
-    Retorna:
-        stats: dict com estatísticas por classe e feature
+    Calcula media, desvio padrao e intervalo de confianca por classe.
     """
     from scipy import stats as scipy_stats
 
@@ -501,16 +425,15 @@ def compute_class_statistics(features, y, feature_names, class_names, confidence
 
     return stats
 
-
 def print_statistics_table(stats):
-    """Imprime tabela formatada de estatísticas."""
+    """Imprime tabela formatada de estatisticas."""
     print("\n" + "=" * 80)
-    print("ESTATÍSTICAS POR CLASSE")
+    print("ESTATISTICAS POR CLASSE")
     print("=" * 80)
 
     for cls_name, features in stats.items():
         print(f"\n--- {cls_name} ---")
-        print(f"{'Feature':<30} {'Média':>10} {'Desvio':>10} {'IC Inf':>10} {'IC Sup':>10}")
+        print(f"{'Feature':<30} {'Media':>10} {'Desvio':>10} {'IC Inf':>10} {'IC Sup':>10}")
         print("-" * 72)
         for fname, vals in features.items():
             print(
