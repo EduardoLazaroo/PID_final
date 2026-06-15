@@ -1,0 +1,19 @@
+RESUMO DO PIPELINE DE ANALISE DE IMAGENS HISTOPATOLOGICAS
+============================================================
+
+Dataset: LC25000
+Classe 1: Colon Adenocarcinoma (colon_aca)
+Classe 2: Colon Benign Tissue (colon_n)
+Total de imagens: 500
+Tempo total: 2111.3s
+
+Acuracia: 0.8267
+CV: 0.8520 +/- 0.0232
+
+Features selecionadas:
+  - color_R_mean
+  - color_R_mean
+  - color_R_mean
+  - color_R_mean
+  - color_G_std
+  - color_G_std
