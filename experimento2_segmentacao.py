@@ -121,33 +121,59 @@ def evaluate_segmentation(binary_mask, original_gray=None):
 def analyze_texture_impact(image_gray, binary_mask):
     """
     Analisa como textura e heterogeneidade afetam a segmentacao.
+    Versao simplificada para evitar problemas de memoria.
     """
     analysis = {}
     
+    # Converter para float32 para reduzir memoria
+    img_f32 = image_gray.astype(np.float32)
+    
+    # Calcular variancia local usando kernel menor para reduzir memoria
     kernel_size = 15
-    local_mean = cv2.blur(image_gray.astype(np.float64), (kernel_size, kernel_size))
-    local_sq_mean = cv2.blur(
-        (image_gray.astype(np.float64)) ** 2, (kernel_size, kernel_size)
-    )
-    local_variance = local_sq_mean - local_mean ** 2
+    local_mean = cv2.blur(img_f32, (kernel_size, kernel_size))
+    local_sq_mean = cv2.blur(img_f32 * img_f32, (kernel_size, kernel_size))
+    local_variance = local_sq_mean - local_mean * local_mean
     local_variance = np.maximum(local_variance, 0)
     
+    # Criar mascaras
     tissue_mask = binary_mask > 0
-    background_mask = ~tissue_mask
+    n_tissue = np.count_nonzero(tissue_mask)
+    n_total = binary_mask.size
+    n_bg = n_total - n_tissue
     
-    if np.any(tissue_mask):
-        analysis["tissue_variance"] = np.mean(local_variance[tissue_mask])
-        analysis["tissue_std"] = np.std(image_gray[tissue_mask])
+    # Calcular estatisticas para tecido usando indexacao direta
+    if n_tissue > 0:
+        # Usar np.where para selecionar pixels sem criar sub-array grande
+        tissue_var_mean = np.sum(local_variance * tissue_mask) / n_tissue
+        analysis["tissue_variance"] = float(tissue_var_mean)
+        
+        # Calcular media e std do tecido
+        tissue_sum = np.sum(img_f32 * tissue_mask)
+        tissue_mean = tissue_sum / n_tissue
+        # Calcular variancia usando E[X^2] - (E[X])^2
+        tissue_sq_sum = np.sum((img_f32 * img_f32) * tissue_mask)
+        tissue_var = (tissue_sq_sum / n_tissue) - (tissue_mean * tissue_mean)
+        analysis["tissue_std"] = float(np.sqrt(max(tissue_var, 0)))
     else:
-        analysis["tissue_variance"] = 0
-        analysis["tissue_std"] = 0
+        analysis["tissue_variance"] = 0.0
+        analysis["tissue_std"] = 0.0
     
-    if np.any(background_mask):
-        analysis["background_variance"] = np.mean(local_variance[background_mask])
-        analysis["background_std"] = np.std(image_gray[background_mask])
+    # Calcular estatisticas para fundo
+    if n_bg > 0:
+        bg_mask = ~tissue_mask
+        bg_var_mean = np.sum(local_variance * bg_mask) / n_bg
+        analysis["background_variance"] = float(bg_var_mean)
+        
+        # Calcular media e std do fundo
+        bg_sum = np.sum(img_f32 * bg_mask)
+        bg_mean = bg_sum / n_bg
+        # Calcular variancia usando E[X^2] - (E[X])^2
+        bg_sq_sum = np.sum((img_f32 * img_f32) * bg_mask)
+        bg_var = (bg_sq_sum / n_bg) - (bg_mean * bg_mean)
+        analysis["background_std"] = float(np.sqrt(max(bg_var, 0)))
     else:
-        analysis["background_variance"] = 0
-        analysis["background_std"] = 0
+        analysis["background_variance"] = 0.0
+        analysis["background_std"] = 0.0
     
     if analysis["background_variance"] > 0:
         analysis["variance_ratio"] = (

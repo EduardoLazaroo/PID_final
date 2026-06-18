@@ -138,41 +138,11 @@ def extract_all_features(image_gray, binary_mask, image_rgb=None):
         features.append(haralick.get(name, 0.0))
         names.append(f"haralick_{name}")
     
+    # 2. Features de cor RGB (6)
     mask_bool = binary_mask.astype(bool)
-    for ch_name in ["R", "G", "B"]:
+    for ch_idx, ch_name in enumerate(["R", "G", "B"]):
         if image_rgb is not None and np.any(mask_bool):
-            channel = image_rgb[:, :, ch_idx] if 'ch_idx' in dir() else image_rgb[:, :, ["R", "G", "B"].index(ch_name)]
-            masked_ch = channel[mask_bool]
-            features.append(np.mean(masked_ch))
-            features.append(np.std(masked_ch))
-        else:
-            features.extend([0.0, 0.0])
-        names.append(f"color_{ch_name}_mean")
-        names.append(f"color_{ch_name}_std")
-    for ch_name in ["R", "G", "B"]:
-        if image_rgb is not None and np.any(mask_bool):
-            channel = image_rgb[:, :, ch_idx] if 'ch_idx' in dir() else image_rgb[:, :, ["R", "G", "B"].index(ch_name)]
-            masked_ch = channel[mask_bool]
-            features.append(np.mean(masked_ch))
-            features.append(np.std(masked_ch))
-        else:
-            features.extend([0.0, 0.0])
-        names.append(f"color_{ch_name}_mean")
-        names.append(f"color_{ch_name}_std")
-    mask_bool = binary_mask.astype(bool)
-    for ch_name in ["R", "G", "B"]:
-        if image_rgb is not None and np.any(mask_bool):
-            channel = image_rgb[:, :, ch_idx] if 'ch_idx' in dir() else image_rgb[:, :, ["R", "G", "B"].index(ch_name)]
-            masked_ch = channel[mask_bool]
-            features.append(np.mean(masked_ch))
-            features.append(np.std(masked_ch))
-        else:
-            features.extend([0.0, 0.0])
-        names.append(f"color_{ch_name}_mean")
-        names.append(f"color_{ch_name}_std")
-    for ch_name in ["R", "G", "B"]:
-        if image_rgb is not None and np.any(mask_bool):
-            channel = image_rgb[:, :, ch_idx] if 'ch_idx' in dir() else image_rgb[:, :, ["R", "G", "B"].index(ch_name)]
+            channel = image_rgb[:, :, ch_idx]
             masked_ch = channel[mask_bool]
             features.append(np.mean(masked_ch))
             features.append(np.std(masked_ch))
