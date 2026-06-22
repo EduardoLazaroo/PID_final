@@ -5,7 +5,7 @@ Dataset: LC25000
 Classe 1: Colon Adenocarcinoma (colon_aca)
 Classe 2: Colon Benign Tissue (colon_n)
 Total de imagens: 500
-Tempo total: 20856.4s
+Tempo total: 1951.0s
 
 Acuracia: 0.9067
 CV: 0.9060 +/- 0.0332

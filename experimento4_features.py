@@ -315,5 +315,19 @@ def run_experiment_4(images_rgb, selected_channels, refined_results, class_name_
     fig.tight_layout()
     save_figure(fig, "exp4_fractal_boxplot.png", subdir="experimento4")
     
+    # Salvar dados para uso posterior (permite executar exp5+ sem refazer exp1-4)
+    import os
+    features_dir = config.FEATURES_DIR
+    np.save(os.path.join(features_dir, "exp4_all_features.npy"), all_features)
+    np.save(os.path.join(features_dir, "exp4_all_labels.npy"), all_labels)
+    # Salvar nomes das features como texto
+    with open(os.path.join(features_dir, "exp4_feature_names.txt"), "w") as f:
+        for name in feature_names:
+            f.write(name + "\n")
+    print(f"  [DADOS SALVOS] {features_dir}")
+    print(f"    - exp4_all_features.npy ({all_features.shape})")
+    print(f"    - exp4_all_labels.npy ({all_labels.shape})")
+    print(f"    - exp4_feature_names.txt ({len(feature_names)} features)")
+    
     print("\n[EXPERIMENTO 4 CONCLUIDO]")
     return all_features, all_labels, feature_names

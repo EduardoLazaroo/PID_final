@@ -233,11 +233,6 @@ def main():
     # EXPERIMENTO 5: Normalização e Seleção
     # =========================================================================
     if experiments is None or 5 in experiments:
-        if all_features is None:
-            print("\n[ERRO] Experimento 5 requer saida do Experimento 4.")
-            print("Execute: python main.py --exp 1 2 3 4 5")
-            sys.exit(1)
-
         print("\n[6/8] Executando Experimento 5: Normalizacao e Selecao...")
         exp5_start = time.time()
         X_normalized, selected_features, selected_names, relief_scores = run_experiment_5(
@@ -255,10 +250,17 @@ def main():
     # =========================================================================
     exp6_results = None
     if experiments is None or 6 in experiments:
+        # Carregar dados do experimento 5 se necessário
         if X_normalized is None or selected_features is None:
-            print("\n[ERRO] Experimento 6 requer saidas dos Experimentos 1-5.")
-            print("Execute: python main.py --exp 1 2 3 4 5 6")
-            sys.exit(1)
+            print("\n  [AVISO] Carregando saidas do experimento 5 do disco...")
+            from experimento5_relief import _load_exp5_data
+            X_normalized, selected_features, selected_names, relief_scores = _load_exp5_data()
+        
+        # Carregar dados do experimento 4 se necessário
+        if all_labels is None or feature_names is None:
+            print("\n  [AVISO] Carregando saidas do experimento 4 do disco...")
+            from experimento5_relief import _load_exp4_data
+            _, all_labels, feature_names = _load_exp4_data()
 
         print("\n[7/8] Executando Experimento 6: Visualizacao e Classificacao...")
         exp6_start = time.time()

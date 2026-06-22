@@ -9,11 +9,38 @@ Procedimentos:
     c) Selecionar features mais relevantes
 """
 
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 import config
 from utils import save_figure, plot_feature_distribution, plot_relief_scores
+
+
+def _load_exp4_data():
+    """Carrega dados salvos do experimento 4."""
+    features_dir = config.FEATURES_DIR
+    features_path = os.path.join(features_dir, "exp4_all_features.npy")
+    labels_path = os.path.join(features_dir, "exp4_all_labels.npy")
+    names_path = os.path.join(features_dir, "exp4_feature_names.txt")
+    
+    if not os.path.exists(features_path):
+        raise FileNotFoundError(
+            f"Dados do experimento 4 nao encontrados em {features_path}\n"
+            "Execute primeiro: python main.py --exp 1 2 3 4"
+        )
+    
+    all_features = np.load(features_path)
+    all_labels = np.load(labels_path)
+    with open(names_path, "r") as f:
+        feature_names = [line.strip() for line in f.readlines()]
+    
+    print(f"  [DADOS CARREGADOS] {features_dir}")
+    print(f"    - Features: {all_features.shape}")
+    print(f"    - Labels: {all_labels.shape}")
+    print(f"    - Feature names: {len(feature_names)}")
+    
+    return all_features, all_labels, feature_names
 
 
 def relief_f_algorithm(X, y, n_neighbors=10):
@@ -91,10 +118,27 @@ def analyze_normalization_effect(X_original, X_normalized, feature_names, method
 def run_experiment_5(all_features, all_labels, feature_names, class_names):
     """
     Executa o Experimento 5 completo.
+    
+    Se all_features for None, carrega dados salvos do experimento 4.
     """
     print("\n" + "=" * 70)
     print("EXPERIMENTO 5 - Normalizacao e Selecao de Caracteristicas")
     print("=" * 70)
+    
+    # Carregar dados do experimento 4 se não foram fornecidos
+    if all_features is None:
+        print("\n  [AVISO] Dados nao fornecidos. Carregando do disco...")
+        all_features, all_labels, feature_names = _load_exp4_data()
+    
+    # Converter labels para inteiros se necessário
+    # all_labels pode vir como strings (nomes das classes) do experimento 4
+    if all_labels.dtype.kind in ('U', 'S', 'O'):
+        unique_labels = np.unique(all_labels)
+        label_to_int = {lbl: idx for idx, lbl in enumerate(unique_labels)}
+        all_labels_int = np.array([label_to_int[lbl] for lbl in all_labels])
+        print(f"  [INFO] Labels convertidos: {label_to_int}")
+    else:
+        all_labels_int = all_labels.astype(int)
     
     # a) Normalizacao
     print(f"\n[Metodo de Normalizacao: {config.NORMALIZATION_METHOD}]")
@@ -127,7 +171,7 @@ def run_experiment_5(all_features, all_labels, feature_names, class_names):
     print(f"  Features a selecionar: {config.RELIEF_N_FEATURES}")
     
     relief_scores, ranking = relief_f_algorithm(
-        X_normalized, all_labels, n_neighbors=config.RELIEF_N_NEIGHBORS
+        X_normalized, all_labels_int, n_neighbors=config.RELIEF_N_NEIGHBORS
     )
     
     print("\n  Ranqueamento RELIEF:")
@@ -166,7 +210,7 @@ def run_experiment_5(all_features, all_labels, feature_names, class_names):
     save_figure(fig, "exp5_relief_scores.png", subdir="experimento5")
     
     # Distribuicao das selecionadas
-    fig = plot_feature_distribution(selected_features, all_labels, selected_names, class_names)
+    fig = plot_feature_distribution(selected_features, all_labels_int, selected_names, class_names)
     save_figure(fig, "exp5_distribuicoes_selecionadas.png", subdir="experimento5")
     
     # Comparacao de escalas
@@ -200,5 +244,47 @@ def run_experiment_5(all_features, all_labels, feature_names, class_names):
     fig.tight_layout()
     save_figure(fig, "exp5_correlacao_selecionadas.png", subdir="experimento5")
     
+    # Salvar dados para uso posterior (permite executar exp6 sem refazer exp5)
+    features_dir = config.FEATURES_DIR
+    np.save(os.path.join(features_dir, "exp5_X_normalized.npy"), X_normalized)
+    np.save(os.path.join(features_dir, "exp5_selected_features.npy"), selected_features)
+    np.save(os.path.join(features_dir, "exp5_relief_scores.npy"), relief_scores)
+    with open(os.path.join(features_dir, "exp5_selected_names.txt"), "w") as f:
+        for name in selected_names:
+            f.write(name + "\n")
+    print(f"  [DADOS SALVOS] {features_dir}")
+    print(f"    - exp5_X_normalized.npy ({X_normalized.shape})")
+    print(f"    - exp5_selected_features.npy ({selected_features.shape})")
+    print(f"    - exp5_relief_scores.npy")
+    print(f"    - exp5_selected_names.txt")
+    
     print("\n[EXPERIMENTO 5 CONCLUIDO]")
+    return X_normalized, selected_features, selected_names, relief_scores
+
+
+def _load_exp5_data():
+    """Carrega dados salvos do experimento 5."""
+    features_dir = config.FEATURES_DIR
+    norm_path = os.path.join(features_dir, "exp5_X_normalized.npy")
+    sel_path = os.path.join(features_dir, "exp5_selected_features.npy")
+    scores_path = os.path.join(features_dir, "exp5_relief_scores.npy")
+    names_path = os.path.join(features_dir, "exp5_selected_names.txt")
+    
+    if not os.path.exists(norm_path):
+        raise FileNotFoundError(
+            f"Dados do experimento 5 nao encontrados em {norm_path}\n"
+            "Execute primeiro: python main.py --exp 1 2 3 4 5"
+        )
+    
+    X_normalized = np.load(norm_path)
+    selected_features = np.load(sel_path)
+    relief_scores = np.load(scores_path)
+    with open(names_path, "r") as f:
+        selected_names = [line.strip() for line in f.readlines()]
+    
+    print(f"  [DADOS CARREGADOS] {features_dir}")
+    print(f"    - X_normalized: {X_normalized.shape}")
+    print(f"    - selected_features: {selected_features.shape}")
+    print(f"    - selected_names: {len(selected_names)}")
+    
     return X_normalized, selected_features, selected_names, relief_scores

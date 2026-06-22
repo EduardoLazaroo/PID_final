@@ -1,0 +1,6 @@
+color_R_mean
+color_G_std
+color_B_std
+color_G_mean
+color_R_std
+fractal_local_dim_0
