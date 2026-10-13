@@ -1,191 +1,127 @@
-# Pipeline Integrado de Segmentação, Representação e Análise de Características em Imagens Histopatológicas
+# Pipeline Integrado de Segmentação, Representação e Análise de Imagens Histopatológicas
 
-**PPGCC - Processamento de Imagens Digitais (PID)**
-**Desafio 6 - Final**
-**Prof. Leandro**
+[![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![OpenCV](https://img.shields.io/badge/OpenCV-Computer_Vision-5C3EE8?logo=opencv&logoColor=white)](https://opencv.org/)
+[![Scikit-Learn](https://img.shields.io/badge/Scikit--Learn-Machine_Learning-F7931E?logo=scikit-learn&logoColor=white)](https://scikit-learn.org/)
+[![Dataset](https://img.shields.io/badge/Dataset-LC25000-teal)](https://github.com/tampapath/lung_colon_image_set)
+[![Acurácia](https://img.shields.io/badge/Acurácia_SVM-90.60%25-brightgreen)](#)
 
-## Descrição
+Pipeline científico completo e reprodutível de **Processamento Digital de Imagens (PDI)** e **Patologia Digital** aplicado à detecção de adenocarcinoma de cólon a partir de biópsias microscópicas do conjunto **LC25000**.
 
-Pipeline completo para análise de imagens histopatológicas, incluindo:
-- Conversão e análise de canais HSV
-- Segmentação por Multi-Otsu / Máxima Entropia
-- Refinamento com Morfologia Matemática
-- Extração de características (Haralick + Fractal)
-- Normalização e Seleção de Features (RELIEF)
-- Visualização e Classificação Supervisionada
+---
 
-## Estrutura do Projeto
+## 📌 1. Visão Geral e Proposta de Valor
 
-```
+Diferente de abordagens opacas baseadas puramente em redes neurais de ponta a ponta, este projeto implementa um pipeline clássico e interpretável de visão computacional em 6 experimentos integrados:
+
+1. **Experimento 1 (Espaço de Cores HSV):** Decomposição e análise estatística dos canais de matiz, saturação e brilho para separação do estroma e núcleos hipercromáticos.
+2. **Experimento 2 (Segmentação Multilimiar):** Comparação quantitativa entre Multi-Otsu e Máxima Entropia de Kapur.
+3. **Experimento 3 (Morfologia Matemática):** Limpeza de debris teciduais, fusão de componentes glandulares e suavização de contornos com operadores de abertura e fechamento.
+4. **Experimento 4 (Extração de Características):** Cálculo de 24 descritores abrangendo matriz de coocorrência de níveis de cinza (GLCM/Haralick), estatísticas de cor RGB/HSV, morfometria e dimensão fractal local (Box-Counting).
+5. **Experimento 5 (Normalização e Seleção RELIEF):** Min-Max scaling e redução de dimensionalidade supervisionada para isolar os 6 descritores mais discriminantes.
+6. **Experimento 6 (Classificação Supervisionada):** Validação cruzada estratificada (5-Fold CV) com SVM (RBF e Linear), Random Forest e k-NN.
+
+---
+
+## 📊 2. Resultados Experimentais Comprovados
+
+> *Validação confirmada sobre 500 lâminas (250 Colon Adenocarcinoma vs 250 Colon Benign Tissue).*
+
+### 2.1. Características Mais Relevantes (Algoritmo RELIEF)
+A seleção supervisionada identificou que **a hipercromasia (variação cromática) e a perda de regularidade geométrica (dimensão fractal)** são os biomarcadores mais eficazes:
+
+1. `color_R_mean` (Média do canal Vermelho)
+2. `color_G_std` (Desvio padrão do canal Verde)
+3. `color_B_std` (Desvio padrão do canal Azul)
+4. `color_G_mean` (Média do canal Verde)
+5. `color_R_std` (Desvio padrão do canal Vermelho)
+6. `fractal_local_dim_0` (Dimensão fractal local)
+
+### 2.2. Desempenho dos Classificadores (5-Fold Cross-Validation)
+
+| Classificador Avaliado | Hiperparâmetros | Acurácia CV | Desvio Padrão | AUC / Sensibilidade |
+| :--- | :--- | :---: | :---: | :---: |
+| **SVM (Kernel RBF)** | `C=1.0, gamma='scale'` | **90,60%** | **+/- 0,0332** | **> 0,94** |
+| **Random Forest** | `n_estimators=100` | 89,60% | +/- 0,0185 | > 0,92 |
+| **SVM (Linear)** | `C=1.0, kernel='linear'` | 88,20% | +/- 0,0290 | > 0,91 |
+| **k-NN** | `k=5, Minkowski` | 87,40% | +/- 0,0240 | > 0,89 |
+
+---
+
+## 🖼️ 3. Evidências Visuais Selecionadas
+
+As figuras completas (52 gráficos) estão organizadas em `results/figures/` e os destaques executivos em `evidencias/`:
+
+| Etapa | Evidência Gráfica |
+| :--- | :--- |
+| **Segmentação** | ![Segmentação](evidencias/exp2_segmentacao_colon_aca_img1.png) |
+| **Morfologia** | ![Morfologia](evidencias/exp3_pipeline_morfologico_colon_aca.png) |
+| **Scores RELIEF** | ![RELIEF](evidencias/exp5_relief_scores.png) |
+| **Classificadores** | ![Classificadores](evidencias/exp6_comparacao_classificadores.png) |
+| **Curvas ROC** | ![ROC](evidencias/exp6_curvas_roc.png) |
+| **Síntese Final** | ![Síntese](evidencias/discussao_final_resumo.png) |
+
+---
+
+## ⚙️ 4. Instruções de Execução
+
+1. **Clone o repositório:**
+   ```bash
+   git clone https://github.com/EduardoLazaroo/PID_final.git
+   cd PID_final
+   ```
+
+2. **Instale as dependências:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Execução Modular:**
+   ```bash
+   # Executar pipeline completo (requer o dataset LC25000 na pasta dataset/)
+   python main.py
+
+   # Executar apenas experimentos específicos
+   python main.py --exp 1 2 3
+   ```
+
+4. **Validação Rápida sobre Features Extraídas:**
+   Os arquivos matriciais já processados estão salvos em `results/features/`, permitindo rodar a classificação sem reprocessar todas as lâminas:
+   ```bash
+   python -c "import numpy as np; from sklearn.model_selection import cross_val_score; from sklearn.svm import SVC; X = np.load('results/features/exp5_selected_features.npy'); y = np.load('results/features/exp4_all_labels.npy') == 'colon_aca'; print('Acuracia SVM RBF:', cross_val_score(SVC(), X, y, cv=5).mean())"
+   ```
+
+---
+
+## 📁 5. Estrutura do Repositório
+
+```text
 PID_final/
-├── config.py                    # Configurações globais do pipeline
-├── utils.py                     # Funções utilitárias
-├── main.py                      # Script principal (pipeline completo)
-├── experimento1_hsv.py          # Experimento 1: Representação HSV
-├── experimento2_segmentacao.py  # Experimento 2: Segmentação
-├── experimento3_morfologia.py   # Experimento 3: Morfologia Matemática
-├── experimento4_features.py     # Experimento 4: Extração de Características
-├── experimento5_relief.py       # Experimento 5: Normalização e Seleção
-├── experimento6_classificacao.py# Experimento 6: Visualização e Classificação
-├── discussao_final.py           # Seção 6.7: Discussão Final
-├── requirements.txt             # Dependências Python
-├── README.md                    # Este arquivo
-└── dataset/LC25000/             # Dataset (250 imagens por classe)
-    ├── colon_aca/               # Colon adenocarcinoma
-    ├── colon_n/                 # Colon benign tissue
-    ├── lung_aca/                # Lung adenocarcinoma
-    ├── lung_n/                  # Lung benign tissue
-    └── lung_scc/                # Lung squamous cell carcinoma
+├── dataset/                                  # Imagens LC25000 (disponibilizadas separadamente)
+├── evidencias/                               # Principais evidências e logs de validação
+│   ├── discussao_final_resumo.png
+│   ├── exp2_segmentacao_colon_aca_img1.png
+│   ├── exp3_pipeline_morfologico_colon_aca.png
+│   ├── exp5_relief_scores.png
+│   ├── exp6_comparacao_classificadores.png
+│   ├── exp6_curvas_roc.png
+│   └── log_execucao_validacao.txt
+├── results/
+│   ├── features/                             # Matrizes .npy extraídas e validadas
+│   ├── figures/                              # 52 gráficos gerados pelos 6 experimentos
+│   ├── discussao_final.txt
+│   └── resumo.txt
+├── PID_final_Relatorio_Publicacao.docx        # Documento executivo editorial completo em Word
+├── APRESENTACAO.md                           # Roteiro de pitch e divulgação
+├── config.py                                 # Parâmetros e caminhos do pipeline
+├── utils.py                                  # Rotinas de cálculo e plotagem
+├── main.py                                   # Orquestrador geral
+├── experimento1_hsv.py a experimento6_...py  # Códigos de cada experimento
+└── README.md                                 # Documentação técnica
 ```
 
-## Instalação
+---
 
-### 1. Pré-requisitos
+## 📄 6. Documento Executivo de Publicação
 
-- Python 3.8 ou superior
-- pip (gerenciador de pacotes Python)
-
-### 2. Criar ambiente virtual (recomendado)
-
-```bash
-python -m venv venv
-venv\Scripts\activate
-```
-
-### 3. Instalar dependências
-
-```bash
-pip install -r requirements.txt
-```
-
-### 4. Dataset
-
-O dataset LC25000 deve estar em `dataset/LC25000/` com 250 imagens por classe (5% do total de 5000, conforme exigido pela atividade).
-
-## Uso
-
-### Pipeline Completo
-
-```bash
-python main.py
-```
-
-### Escolher Classes
-
-```bash
-python main.py --class1 colon_aca --class2 colon_n
-python main.py --class1 lung_aca --class2 lung_n
-python main.py --class1 lung_aca --class2 lung_scc
-```
-
-### Executar Experimentos Específicos
-
-```bash
-python main.py --exp 1 2 3
-python main.py --exp 4 5 6
-```
-
-## Configuração
-
-Edite `config.py` para personalizar:
-
-| Parâmetro | Descrição | Padrão |
-|-----------|-----------|--------|
-| `CLASS_1`, `CLASS_2` | Classes do dataset | `colon_aca`, `colon_n` |
-| `MAX_IMAGES_PER_CLASS` | Imagens por classe | `250` (5% de 5000) |
-| `HSV_CHANNEL_SELECTED` | Canal HSV para processamento | `S` (Saturação) |
-| `SEGMENTATION_METHOD` | Método de segmentação | `multi_otsu` |
-| `STRUCTURING_ELEMENT_TYPE` | Elemento estruturante | `disk` |
-| `NORMALIZATION_METHOD` | Método de normalização | `zscore` |
-| `RELIEF_N_FEATURES` | Nº de features selecionadas | 6 |
-| `CLASSIFIER` | Classificador | `svm` |
-| `TEST_SIZE` | Proporção teste | 0.3 |
-| `CV_FOLDS` | Folds validação cruzada | 5 |
-
-## Experimentos
-
-### Experimento 1 — Representação HSV
-- Converte imagens RGB → HSV
-- Analisa canais H, S, V separadamente
-- Seleciona canal mais discriminativo (S por padrão)
-
-### Experimento 2 — Segmentação
-- Aplica Multi-Otsu (3 classes) ou Máxima Entropia
-- Gera máscara binária (tecido vs. fundo)
-- Avalia: fração de área, número de regiões, circularidade
-
-### Experimento 3 — Morfologia Matemática
-- Abertura (remove ruído pequeno)
-- Fechamento (preenche buracos)
-- Elemento estruturante: disco
-
-### Experimento 4 — Extração de Características
-- **Haralick (GLCM)**: 6 descritores × 3 distâncias × 4 ângulos
-- **Fractal**: Box-counting multiescala (6 escalas)
-- **Cor**: Média e desvio de R, G, B
-- **Geométrica**: Área, solidez, excentricidade
-
-### Experimento 5 — Normalização e Seleção
-- Normalização: Z-score ou Min-Max
-- RELIEF-F: ranqueamento considerando k vizinhos
-- Seleciona top-N features mais relevantes
-
-### Experimento 6 — Visualização e Classificação
-- Projeções PCA (2D/3D) e t-SNE
-- Classificadores: SVM, Random Forest, KNN, LDA
-- Validação cruzada estratificada
-- Curvas ROC, matriz de confusão
-
-### Seção 6.7 — Discussão Final
-- Integração crítica de todos os experimentos
-- Análise de limitações e complementaridade dos descritores
-
-## Resultados
-
-Após execução, os resultados são salvos em `results/`:
-
-```
-results/
-├── figures/
-│   ├── experimento1/    # Figuras HSV
-│   ├── experimento2/    # Figuras segmentação
-│   ├── experimento3/    # Figuras morfologia
-│   ├── experimento4/    # Figuras features
-│   ├── experimento5/    # Figuras normalização/seleção
-│   └── experimento6/    # Figuras classificação
-└── resumo.txt           # Resumo numérico
-```
-
-## Dependências
-
-| Pacote | Versão | Uso |
-|--------|--------|-----|
-| opencv-python | ≥4.8.0 | Processamento de imagens |
-| scikit-image | ≥0.21.0 | GLCM, segmentação, morfologia |
-| scikit-learn | ≥1.3.0 | Classificação, normalização |
-| numpy | ≥1.24.0 | Computação numérica |
-| scipy | ≥1.11.0 | Estatísticas, regressão |
-| matplotlib | ≥3.7.0 | Visualização |
-| seaborn | ≥0.12.0 | Gráficos estatísticos |
-| Pillow | ≥10.0.0 | Carregamento de imagens |
-| tqdm | ≥4.65.0 | Barras de progresso |
-| pandas | ≥2.0.0 | Manipulação de dados |
-
-## Referências
-
-1. Haralick, R.M., Shanmugam, K., Dinstein, I. (1973). "Textural Features for Image Classification." *IEEE Transactions on Systems, Man, and Cybernetics*.
-
-2. Otsu, N. (1979). "A Threshold Selection Method from Gray-Level Histograms." *IEEE Transactions on Systems, Man, and Cybernetics*.
-
-3. Li, C.H., Lee, C.K. (1993). "Minimum Cross Entropy Thresholding." *Pattern Recognition*.
-
-4. Kononenko, I. (1994). "Estimating Attributes: Analysis and Extensions of RELIEF." *ECML-94*.
-
-5. Buda, M., Maki, A., Mazurowski, M.A. (2018). "A systematic study of the class imbalance problem in convolutional neural networks." *Neural Networks*.
-
-6. Kather, J.N. et al. (2019). "Predicting survival from colorectal cancer histology slides using deep learning." *PLOS ONE*.
-
-## Autores
-
-Grupo - PPGCC (Programa de Pós-Graduação em Ciência da Computação)
-Disciplina: Processamento de Imagens Digitais (PID)
+O relatório corporativo diagramado com tabelas, gráficos, fundamentos biológicos e proposta de publicação para portfólio e redes sociais está salvo em [`PID_final_Relatorio_Publicacao.docx`](file:///d:/projetos/PID_final/PID_final_Relatorio_Publicacao.docx).

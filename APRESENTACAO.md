@@ -12,10 +12,11 @@ O trabalho e direcionado a estudantes e pesquisadores de PDI, visao computaciona
 
 ## Evidencias visuais recomendadas
 
-1. Sequencia HSV, mascara e operacoes morfologicas.
-2. PCA ou t-SNE das caracteristicas.
-3. Matriz de confusao.
-4. Curvas ROC e resumo de resultados.
+1. Sequencia HSV, mascara e operacoes morfologicas (`evidencias/exp2_segmentacao_colon_aca_img1.png`, `evidencias/exp3_pipeline_morfologico_colon_aca.png`).
+2. Scores e selecao RELIEF (`evidencias/exp5_relief_scores.png`).
+3. Matriz de confusao e comparativo dos classificadores (`evidencias/exp6_comparacao_classificadores.png`, `evidencias/exp6_matriz_confusao.png`).
+4. Curvas ROC e resumo integrado dos resultados (`evidencias/exp6_curvas_roc.png`, `evidencias/discussao_final_resumo.png`).
+5. Relatorio Executivo Word diagramado (`PID_final_Relatorio_Publicacao.docx`).
 
 ## Prompt para imagem complementar
 

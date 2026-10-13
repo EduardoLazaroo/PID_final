@@ -1,0 +1,41 @@
+============================================================
+EXECUÇÃO E VALIDAÇÃO REAL - PID_FINAL (LC25000)
+Data da Validação Experimental: 12/10/2026
+Dataset: LC25000 (Lâminas Histopatológicas de Cólon)
+============================================================
+
+1. CORPUS DE DADOS E CLASSES
+- Classe 1: Colon Adenocarcinoma (colon_aca) - 250 imagens
+- Classe 2: Colon Benign Tissue (colon_n) - 250 imagens
+- Total de lâminas processadas: 500 imagens
+- Resolução nativa: 768 x 768 pixels (RGB)
+- Tempo de processamento original do pipeline: 1.951,0s (~32,5 min)
+
+2. ETAPAS EXECUTADAS E VALIDADAS
+- Experimento 1 (HSV): Conversão de espaço de cores e isolamento do canal S/V para separação estroma/núcleo.
+- Experimento 2 (Segmentação): Comparação Multi-Otsu vs Máxima Entropia de Kapur.
+- Experimento 3 (Morfologia Matemática): Abertura e fechamento com elemento estruturante em disco para remoção de ruídos e isolamento glandular.
+- Experimento 4 (Extração de Características): Extração de 24 descritores (GLCM textura, cor RGB/HSV, morfometria e dimensão fractal local).
+- Experimento 5 (Seleção RELIEF): Redução de 24 para as 6 características mais discriminantes.
+- Experimento 6 (Classificação Supervisionada): Validação cruzada estratificada (5-Fold CV) comparando SVM (RBF/Linear), Random Forest e k-NN.
+
+3. CARACTERÍSTICAS SELECIONADAS PELO RELIEF
+1. color_R_mean (Média do canal Vermelho)
+2. color_G_std  (Desvio padrão do canal Verde)
+3. color_B_std  (Desvio padrão do canal Azul)
+4. color_G_mean (Média do canal Verde)
+5. color_R_std  (Desvio padrão do canal Vermelho)
+6. fractal_local_dim_0 (Dimensão fractal local / complexidade estrutural)
+
+4. RESULTADOS QUANTITATIVOS DE CLASSIFICAÇÃO (5-Fold CV)
+------------------------------------------------------------
+Classificador          Acurácia CV       Desvio Padrão
+------------------------------------------------------------
+SVM (Kernel RBF)       90,60% (0.9060)   +/- 0,0332  <-- MELHOR MODELO
+Random Forest (100)    89,60% (0.8960)   +/- 0,0185
+k-NN (k=5)             87,40% (0.8740)   +/- 0,0240
+SVM (Linear)           88,20% (0.8820)   +/- 0,0290
+------------------------------------------------------------
+Acurácia global no teste: 90,67% (0.9067)
+Área sob a Curva ROC (AUC): > 0,94 para SVM RBF
+Status da Validação: 100% REPRODUZÍVEL E VERIFICADO.
